@@ -9,7 +9,7 @@ gradlew.bat
 src/main/resources/client_secret.json
 client_secret.json
 /target/*
-report.csv
+*.csv
 
 ### STS ###
 .apt_generated

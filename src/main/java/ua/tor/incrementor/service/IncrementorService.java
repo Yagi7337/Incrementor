@@ -19,7 +19,10 @@ import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import com.google.api.services.sheets.v4.Sheets;
-import com.google.api.services.sheets.v4.model.UpdateValuesResponse;
+import com.google.api.services.sheets.v4.model.AddSheetRequest;
+import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
+import com.google.api.services.sheets.v4.model.Request;
+import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import ua.tor.incrementor.model.ParsedVacancy;
 import ua.tor.incrementor.service.repository.IParsedVacancy;
@@ -33,10 +36,14 @@ import ua.tor.incrementor.utils.SheetServiceUtil;
 @Component
 public class IncrementorService {
 
-	private static final String SAMPLE_CSV_FILE = "./dump.csv";
-	private final Integer DEFAULT_WEIGHT = 1;
+	private static final String SAMPLE_CSV_FILE = "dump.csv";
+	private static final String SPREAD_SHEET_ID = "1npZs2N399_HPYMIDy31taSxkPD_eDlGQe3bT2qbTGcI";
+	private static final Integer DEFAULT_WEIGHT = 1;
+
 	@Autowired
 	private IParsedVacancy parsedVacancy;
+	private ObjectId crawlerId;
+	private String dumpId;
 
 	private Map<String, Integer> qntConter;
 	private List<ParsedVacancy> listOfParsedVacancies;
@@ -51,6 +58,8 @@ public class IncrementorService {
 	 */
 	public Map<String, Integer> getVacancies(ObjectId crawlerId)
 			throws IOException, GeneralSecurityException {
+		this.crawlerId = crawlerId;
+
 		listOfParsedVacancies = parsedVacancy.findByCrawlerId(crawlerId);
 		return getCollection(listOfParsedVacancies);
 	}
@@ -76,14 +85,14 @@ public class IncrementorService {
 				.sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
 				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
 						(oldValue, newValue) -> oldValue, LinkedHashMap::new));
-		// writeToCsv(result);
-		testGoogle(result);
-		System.out.println(result);
+		writeToCsv(result);
+		writeToGoogleSheets(result);
 		return result;
 	}
 
 	private void writeToCsv(Map<String, Integer> map) {
-		try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(SAMPLE_CSV_FILE));
+		this.dumpId = crawlerId.toString() + "_";
+		try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(dumpId + SAMPLE_CSV_FILE));
 				CSVPrinter csvPrinter = new CSVPrinter(writer,
 						CSVFormat.DEFAULT.withHeader("Skill", "Quantity"));) {
 			for (Map.Entry<String, Integer> entry : map.entrySet()) {
@@ -96,9 +105,12 @@ public class IncrementorService {
 		}
 	}
 
-	public void testGoogle(Map<String, Integer> map) throws IOException, GeneralSecurityException {
-		// Build a new authorized API client service.
+	private void writeToGoogleSheets(Map<String, Integer> map)
+			throws IOException, GeneralSecurityException {
 		Sheets service = SheetServiceUtil.getSheetsService();
+
+		createNewSheet();
+
 		List<List<Object>> valuesForCells = new ArrayList<List<Object>>();
 		valuesForCells.add(Arrays.asList("Skills", "Quantity"));
 		ValueRange body = new ValueRange();
@@ -106,13 +118,21 @@ public class IncrementorService {
 		for (Map.Entry<String, Integer> entry : map.entrySet()) {
 			valuesForCells.add(new ArrayList<>(Arrays.asList(entry.getKey(), entry.getValue())));
 		}
-
 		body.setValues(valuesForCells);
-
-		UpdateValuesResponse result = service.spreadsheets().values()
-				.update("1npZs2N399_HPYMIDy31taSxkPD_eDlGQe3bT2qbTGcI", "A5", body)
+		service.spreadsheets().values().update(SPREAD_SHEET_ID, crawlerId.toString() + "!A5", body)
 				.setValueInputOption("RAW").execute();
-		System.out.printf("%d cells updated.", result.getUpdatedCells());
+	}
 
+	private void createNewSheet() throws IOException {
+		Sheets service = SheetServiceUtil.getSheetsService();
+		List<Request> requests = new ArrayList<>();
+
+		requests.add(new Request().setAddSheet(new AddSheetRequest()
+				.setProperties(new SheetProperties().setTitle(crawlerId.toString()))));
+
+		BatchUpdateSpreadsheetRequest body =
+				new BatchUpdateSpreadsheetRequest().setRequests(requests);
+
+		service.spreadsheets().batchUpdate(SPREAD_SHEET_ID, body).execute();
 	}
 }
