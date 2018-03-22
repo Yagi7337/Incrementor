@@ -24,8 +24,10 @@ import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
 import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.ValueRange;
+import ua.tor.incrementor.model.Crawler;
 import ua.tor.incrementor.model.ParsedVacancy;
-import ua.tor.incrementor.service.repository.IParsedVacancy;
+import ua.tor.incrementor.service.repository.ICrawlerRepository;
+import ua.tor.incrementor.service.repository.IParsedVacancyRepository;
 import ua.tor.incrementor.utils.SheetServiceUtil;
 
 /**
@@ -41,7 +43,9 @@ public class IncrementorService {
 	private static final Integer DEFAULT_WEIGHT = 1;
 
 	@Autowired
-	private IParsedVacancy parsedVacancy;
+	private IParsedVacancyRepository parsedVacancy;
+	@Autowired
+	private ICrawlerRepository crawlerRepository;
 	private ObjectId crawlerId;
 	private String dumpId;
 
@@ -107,11 +111,14 @@ public class IncrementorService {
 
 	private void writeToGoogleSheets(Map<String, Integer> map)
 			throws IOException, GeneralSecurityException {
+
 		Sheets service = SheetServiceUtil.getSheetsService();
 
 		createNewSheet();
 
 		List<List<Object>> valuesForCells = new ArrayList<List<Object>>();
+		valuesForCells.add(Arrays.asList(getSkillByCrawlerId(crawlerId),
+				getAmountOfParsedVacancyByCrawlerId(crawlerId)));
 		valuesForCells.add(Arrays.asList("Skills", "Quantity"));
 		ValueRange body = new ValueRange();
 
@@ -134,5 +141,14 @@ public class IncrementorService {
 				new BatchUpdateSpreadsheetRequest().setRequests(requests);
 
 		service.spreadsheets().batchUpdate(SPREAD_SHEET_ID, body).execute();
+	}
+
+	private String getSkillByCrawlerId(ObjectId crawlerId) {
+		Crawler crawler = crawlerRepository.findOneById(crawlerId);
+		return crawler.getSkill();
+	}
+
+	private long getAmountOfParsedVacancyByCrawlerId(ObjectId crawlerId) {
+		return parsedVacancy.countByCrawlerId(crawlerId);
 	}
 }

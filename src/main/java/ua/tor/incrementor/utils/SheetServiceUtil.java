@@ -19,41 +19,33 @@ import com.google.api.services.sheets.v4.SheetsScopes;
  */
 public class SheetServiceUtil {
 
-  /** Application name. */
-  private static final String APPLICATION_NAME = "Google Sheets API Java Quickstart";
+	/** Application name. */
+	private static final String APPLICATION_NAME = "Google Sheets API Java Quickstart";
 
-  /** Global instance of the JSON factory. */
-  private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
+	/** Global instance of the JSON factory. */
+	private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
 
-  /** Global instance of the HTTP transport. */
-  private static HttpTransport HTTP_TRANSPORT;
+	/** Global instance of the HTTP transport. */
+	private static HttpTransport HTTP_TRANSPORT;
 
-  /**
-   * Global instance of the scopes required by this quickstart.
-   *
-   * If modifying these scopes, delete your previously saved credentials at
-   * ~/.credentials/sheets.googleapis.com-java-quickstart
-   */
-  private static final List<String> SCOPES = Arrays.asList(SheetsScopes.SPREADSHEETS);
+	static {
+		try {
+			HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+		} catch (Throwable t) {
+			t.printStackTrace();
+			System.exit(1);
+		}
+	}
 
-  static {
-    try {
-      HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-    } catch (Throwable t) {
-      t.printStackTrace();
-      System.exit(1);
-    }
-  }
-
-  /**
-   * Build and return an authorized Sheets API client service.
-   * 
-   * @return an authorized Sheets API client service
-   * @throws IOException
-   */
-  public static Sheets getSheetsService() throws IOException {
-    Credential credential = GoogleAuthorizeUtil.authorize();
-    return new Sheets.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
-        .setApplicationName(APPLICATION_NAME).build();
-  }
+	/**
+	 * Build and return an authorized Sheets API client service.
+	 * 
+	 * @return an authorized Sheets API client service
+	 * @throws IOException
+	 */
+	public static Sheets getSheetsService() throws IOException {
+		Credential credential = GoogleAuthorizeUtil.authorize();
+		return new Sheets.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
+				.setApplicationName(APPLICATION_NAME).build();
+	}
 }

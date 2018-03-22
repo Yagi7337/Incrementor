@@ -5,8 +5,9 @@ import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import ua.tor.incrementor.model.ParsedVacancy;
 
-public interface IParsedVacancy extends MongoRepository<ParsedVacancy, ObjectId> {
+public interface IParsedVacancyRepository extends MongoRepository<ParsedVacancy, ObjectId> {
 
-  List<ParsedVacancy> findByCrawlerId(ObjectId id);
+	List<ParsedVacancy> findByCrawlerId(ObjectId id);
 
+	long countByCrawlerId(ObjectId crawlerId);
 }
