@@ -6,8 +6,6 @@
 gradlew
 gradlew.bat
 *.log
-src/main/resources/client_secret.json
-client_secret.json
 /target/*
 *.csv
 
