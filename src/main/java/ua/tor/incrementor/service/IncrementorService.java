@@ -21,6 +21,8 @@ import org.springframework.stereotype.Component;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.AddSheetRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
+import com.google.api.services.sheets.v4.model.ClearValuesRequest;
+import com.google.api.services.sheets.v4.model.ClearValuesResponse;
 import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.ValueRange;
@@ -41,6 +43,7 @@ public class IncrementorService {
 	private static final String SAMPLE_CSV_FILE = "dump.csv";
 	private static final String SPREAD_SHEET_ID = "1npZs2N399_HPYMIDy31taSxkPD_eDlGQe3bT2qbTGcI";
 	private static final Integer DEFAULT_WEIGHT = 1;
+	private static final String RANGE = "Tests!A5";
 
 	@Autowired
 	private IParsedVacancyRepository parsedVacancy;
@@ -48,6 +51,7 @@ public class IncrementorService {
 	private ICrawlerRepository crawlerRepository;
 	private ObjectId crawlerId;
 	private String dumpId;
+
 
 	private Map<String, Integer> qntConter;
 	private List<ParsedVacancy> listOfParsedVacancies;
@@ -112,9 +116,14 @@ public class IncrementorService {
 	private void writeToGoogleSheets(Map<String, Integer> map)
 			throws IOException, GeneralSecurityException {
 
-		Sheets service = SheetServiceUtil.getSheetsService();
+		Sheets sheetsService = SheetServiceUtil.getSheetsService();
 
-		createNewSheet();
+		ClearValuesRequest requestBody = new ClearValuesRequest();
+		Sheets.Spreadsheets.Values.Clear request = sheetsService.spreadsheets().values()
+				.clear(SPREAD_SHEET_ID, "A1:Z50000", requestBody);
+
+		request.execute();
+		// createNewSheet();
 
 		List<List<Object>> valuesForCells = new ArrayList<List<Object>>();
 		valuesForCells.add(Arrays.asList(getSkillByCrawlerId(crawlerId),
@@ -126,7 +135,7 @@ public class IncrementorService {
 			valuesForCells.add(new ArrayList<>(Arrays.asList(entry.getKey(), entry.getValue())));
 		}
 		body.setValues(valuesForCells);
-		service.spreadsheets().values().update(SPREAD_SHEET_ID, crawlerId.toString() + "!A5", body)
+		sheetsService.spreadsheets().values().update(SPREAD_SHEET_ID, RANGE, body)
 				.setValueInputOption("RAW").execute();
 	}
 
