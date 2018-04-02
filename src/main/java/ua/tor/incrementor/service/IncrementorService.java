@@ -94,7 +94,7 @@ public class IncrementorService {
 				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
 						(oldValue, newValue) -> oldValue, LinkedHashMap::new));
 		writeToCsv(result);
-		writeToGoogleSheets(result);
+		//writeToGoogleSheets(result);
 		return result;
 	}
 
